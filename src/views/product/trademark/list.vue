@@ -38,11 +38,11 @@
     ></el-pagination>
     <el-dialog :title="form.id ? '更新' : '添加'" :visible.sync="isShowDialog">
       <!-- 内部会执行: $emit('update:visible', false) 自动关闭 -->
-      <el-form :model="form" style="width: 80%">
-        <el-form-item label="品牌名称" :label-width="formLabelWidth">
+      <el-form :model="form" style="width: 80%" :rules="rules" ref="tmForm">
+        <el-form-item label="品牌名称" :label-width="formLabelWidth" prop="tmName">
           <el-input v-model="form.tmName" autocomplete="off" placeholder="请输入品牌名称"></el-input>
         </el-form-item>
-        <el-form-item label="品牌LOGO" :label-width="formLabelWidth">
+        <el-form-item label="品牌LOGO" :label-width="formLabelWidth" prop="logoUrl">
           <!--
             action: 指定上传图片的接口地址   组件内部向发此地址发送上传文件的ajax请求
               http://182.92.128.115/admin/product/fileUpload: 不可以, 跨域了
@@ -87,7 +87,21 @@ export default {
         tmName: "", // 表单中的名称
         logoUrl: "" // 图片的url
       },
-      formLabelWidth: "100px" // 表格宽度
+      formLabelWidth: "100px", // 表格宽度
+
+      rules: {
+        /* 品牌名称:
+              必须输入 输入过程中触发校验
+              长度必须在2-10 之间 失去焦点时触发校验
+            logo:
+              必须有
+         */
+        tmName: [
+          { required: true, message: "请输入品牌名称", trigger: "change" }, //值发生改变的时候触发的验证规则 和提示信息
+          { validator: this.validateTmName, trigger: "blur" }
+        ],
+        logo: [{ required: true, message: "请指定logo图片" }]
+      }
     };
   },
   mounted() {
@@ -95,10 +109,20 @@ export default {
     this.getTrademarks(); // 不需要传递数据 因为已经制定该参数默认值
   },
   methods: {
+    // 校验品牌名称的时候调用的自定义验证规则
+    validateTmName(rule, value, callback) {
+      if (value.length < 2 || value.length > 10) {
+        //调用callback函数传入error的时候代表不通过,并制定要显示的错误信息
+        callback(new Error("长度在2到10个字符"));
+      } else {
+        //验证成功直接调用即可(不传递任何参数代表通过)
+        callback();
+      }
+    },
     showUpdate(trademark) {
       // 更新已经存在的数据
       // 将当前的品牌对象保存到 form 中 用于在dialog中显示
-      this.form = trademark;
+      this.form = { ...trademark };
       // 显示对话框
       this.isShowDialog = true;
     },
@@ -126,31 +150,37 @@ export default {
       // 最后返回的应该是一个布尔值 ,为真就继续请求 为假就中断请求
       return isJPGorPNG && isLt500KB;
     },
-    async addOrUpdateTrademark() {
-      // 更新按钮或者是添加按钮 就是确定键
-      // 取出请求需要的数据 之后发送请求
-      const trademark = this.form; // 从form中获取用户上传的信息
-      // 如果这个trademark中存在id 那么就是一个更新请求 否则就是一个添加请求
-      let result;
-      if (trademark.id) {
-        result = await this.$API.trademark.update(trademark);
-      } else {
-        result = await this.$API.trademark.add(trademark);
-      }
-      // 在请求成功之后应该关闭对话框,之后应该重新发送请求获取更新最新的数据列表
-      if (result.code === 200) {
-        this.$message.success(`${trademark.id ? "更新" : "添加"}成功`);
-        // 关闭弹框显示
-        this.isShowDialog = false;
-        // 如果是更新请求成功,就应该显示当前页
-        // 如果是添加请求成功就应该是第一页
-        // 就是调用之前定义的获取指定页码的函数,参数传递的是当前页或者是第一页
-        this.getTrademarks(trademark.id ? this.page : 1);
-        // 还应该做的事就是清楚弹框中的数据(其实不清楚也可以 因为再次点击添加按钮的时候也会清除)
-      } else {
-        // 如果请求失败了 就应该提示用户 添加或者更新失败
-        this.$message.error(`${trademark.id ? "更新" : "添加"}成功`);
-      }
+    addOrUpdateTrademark() {
+      this.$refs.tmName.validate(async volid => {
+        if (volid) {
+          // 更新按钮或者是添加按钮 就是确定键
+          // 取出请求需要的数据 之后发送请求
+          const { ...trademark } = this.form; // 从form中获取用户上传的信息
+          // 如果这个trademark中存在id 那么就是一个更新请求 否则就是一个添加请求
+          let result;
+          if (trademark.id) {
+            result = await this.$API.trademark.update(trademark);
+          } else {
+            result = await this.$API.trademark.add(trademark);
+          }
+          // 在请求成功之后应该关闭对话框,之后应该重新发送请求获取更新最新的数据列表
+          if (result.code === 200) {
+            this.$message.success(`${trademark.id ? "更新" : "添加"}成功`);
+            // 关闭弹框显示
+            this.isShowDialog = false;
+            // 如果是更新请求成功,就应该显示当前页
+            // 如果是添加请求成功就应该是第一页
+            // 就是调用之前定义的获取指定页码的函数,参数传递的是当前页或者是第一页
+            this.getTrademarks(trademark.id ? this.page : 1);
+            // 还应该做的事就是清楚弹框中的数据(其实不清楚也可以 因为再次点击添加按钮的时候也会清除)
+          } else {
+            // 如果请求失败了 就应该提示用户 添加或者更新失败
+            this.$message.error(`${trademark.id ? "更新" : "添加"}成功`);
+          }
+        } else {
+          //没有通过 不需要做任何操作 上面已经提示错误信息
+        }
+      });
     },
 
     handleSizeChange(pageSize) {
