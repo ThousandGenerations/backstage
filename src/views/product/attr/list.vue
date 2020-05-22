@@ -51,7 +51,7 @@
       <!-- 修改或更新页面 -->
       <div v-show="!isShowList">
         <el-form inline :model="attr">
-          <el-form-item label="属性名">
+          <el-form-item @submit.native.prevent label="属性名">
             <el-input type="text" v-model="attr.attrName" placeholder="请输入属性名"></el-input>
           </el-form-item>
         </el-form>
@@ -67,6 +67,7 @@
           <el-table-column label="属性值名称">
             <template slot-scope="{row,$index}">
               <el-input
+                :ref="$index"
                 v-if="row.edit"
                 v-model="row.valueName"
                 size="mini"
@@ -74,9 +75,13 @@
                 @blur="toShow(row)"
                 @keyup.enter.native="toShow(row)"
               ></el-input>
+              <!-- 在进入编辑模式的时候 自动获取焦点
+                  增加ref属性指定唯一标识(下标)
+                  在toEdit的回调函数中,也就是进入编辑模式的时候获取当前行的refs[index],调用focus方法 获取input输入框的焦点
+              -->
               <span
                 v-else
-                @click="toEdit(row)"
+                @click="toEdit(row,$index)"
                 style="display:inline-block;width:100%;height:100%"
               >{{row.valueName}}</span>
             </template>
@@ -187,7 +192,7 @@ export default {
       this.isShowList = false;
     },
     //进入编辑模式
-    toEdit(value) {
+    toEdit(value, index) {
       // 给之前的属性也添加edit属性
       // 如果已经有了就直接将edit改为true 如果不是就需要通过$set添加一个响应式的对象
       if (value.hasOwnProperty("edit")) {
@@ -196,6 +201,14 @@ export default {
         //没有找到对应的属性值 用$set添加
         this.$set(value, "edit", true);
       }
+      //找到当前行的input对象 添加focus方法获取焦点
+      // 注意的是: 现在edit为true 但这个时候界面还没有发生变化 ,界面是最后异步发生改变的
+      // 应该调用的是 $nextTick方法 等待界面更新的时候再调用方法 (和之前创建swiper实例对象是一样的)
+      console.log(index);
+      this.$nextTick(() => {
+        this.$refs[index].focus();
+        console.log("11111");
+      });
     },
     //失去焦点或者enter键 显示查看界面
     toShow(value) {
@@ -234,6 +247,10 @@ export default {
         attrIs: this.attr.id,
         valueName: "",
         edit: true // edit确定了新添加的属性是编辑模式
+      });
+      // 让最后一个属性值的input自动获得焦点 (必须等界面更新之后之能focus)
+      this.$nextTick(() => {
+        this.$refs[this.attr.attrValueList.length - 1].focus();
       });
     },
     // 三级列表发生改变是触发的回调,将id分别存到对应的数据中去
