@@ -9,6 +9,7 @@
         icon="el-icon-plus"
         style="margin-bottom:20px"
         click="showSpuForm"
+        @click="showAddSpu"
       >添加SPU</el-button>
       <el-table v-loading="loading" :data="spuList" border stripe>
         <!-- 序号列 -->
@@ -16,6 +17,8 @@
 
         <el-table-column label="SPU名称" prop="spuName"></el-table-column>
         <el-table-column label="SPU描述" prop="description"></el-table-column>
+        <!-- Table -->
+
         <el-table-column label="操作">
           <template slot-scope="{row, $index}">
             <hint-button
@@ -23,7 +26,7 @@
               icon="el-icon-plus"
               size="mini"
               title="添加SKU"
-              @click="showSku"
+              @click="showSku(row)"
             ></hint-button>
             <hint-button
               type="primary"
@@ -32,12 +35,37 @@
               title="修改SPU"
               @click="showSpuForm(row.id)"
             ></hint-button>
-            <hint-button type="info" icon="el-icon-info" size="mini" title="查看所有SKU"></hint-button>
-            <hint-button type="danger" icon="el-icon-delete" size="mini" title="删除SPU"></hint-button>
+            <hint-button
+              type="info"
+              icon="el-icon-info"
+              size="mini"
+              title="查看所有SKU"
+              @click="showSkuList(row)"
+            ></hint-button>
+            <el-popconfirm title="确定删除吗?" @onConfirm="deleteSpu(row.id)">
+              <hint-button
+                type="danger"
+                slot="reference"
+                icon="el-icon-delete"
+                size="mini"
+                title="删除SPU"
+              ></hint-button>
+            </el-popconfirm>
           </template>
         </el-table-column>
       </el-table>
-
+      <el-dialog :title="spuName+'->sku列表'" :visible.sync="isShowSkuDialog">
+        <el-table :data="skuList">
+          <el-table-column property="skuName" label="名称" width="150"></el-table-column>
+          <el-table-column property="price" label="价格(元)" width="200"></el-table-column>
+          <el-table-column property="weight" label="重量(KG)"></el-table-column>
+          <el-table-column property="1" label="默认图片">
+            <template slot-scope="{row,$index}">
+              <img :src="row.skuDefaultImg" style="width:100px;height:100px" alt />
+            </template>
+          </el-table-column>
+        </el-table>
+      </el-dialog>
       <el-pagination
         background
         style="text-align: center; margin-top: 20px;"
@@ -50,11 +78,17 @@
         @size-change="handleSizeChange"
       ></el-pagination>
     </el-card>
+
     <!-- 相当于自定义update事件
         @update:visible = 'isShowSpu = $event'
     -->
-    <SpuForm ref="spuForm" :visible.sync="isShowSpu" />
-    <SkuForm v-show="isShowSku" />
+    <SpuForm
+      ref="spuForm"
+      :visible.sync="isShowSpu"
+      @getList="getListSuccess"
+      @back="isShowSku = false"
+    />
+    <SkuForm ref="skuForm" v-show="isShowSku" />
   </div>
 </template>
 
@@ -75,21 +109,77 @@ export default {
       limit: 3,
       total: 0,
 
-      isShowSpu: false, // 定义显示spuForm组件
-      isShowSku: false // 定义显示skuForm组件
+      isShowSpu: false, // 定义显示spuForm组件的显示隐藏
+      isShowSku: false, // 定义显示skuForm组件
+
+      isShowSkuDialog: false,
+      spuName: "",
+      skuList: []
     };
   },
   mounted() {
     //开局获取列表数据
-    this.category3Id = 61;
-    this.getSpuList();
+    // this.category3Id = 61;
+    // this.getSpuList();
   },
   methods: {
-    //显示sku界面
-    showSku() {
-      this.isShowSku = true;
+    // 显示指定SPU的SKU列表
+    async showSkuList(spu) {
+      this.spuName = spu.spuName;
+      this.isShowSkuDialog = true;
+      const result = await this.$API.sku.findSku(spu.id);
+      this.skuList = result.data;
     },
-    // 显示spuForm界面
+    // 删除指定ID的SPU
+    async deleteSpu(spuId) {
+      try {
+        const result = await this.$API.spu.remove(spuId);
+        if (result.code === 200) {
+          this.$message.success("删除成功");
+          //重新请求页面
+          this.getSpuList();
+        }
+      } catch (e) {
+        console.log(e);
+      }
+    },
+    // 获取getListSuccess
+    getListSuccess() {
+      if (this.spuId) {
+        // 如果spuId有值说明是更新
+        // 获取当前页
+        this.getSpuList(this.page);
+        //重置spuId
+        this.spuId = "";
+      } else {
+        // 没有spuId没有值
+        this.getSpuList();
+      }
+    },
+    // 显示spu的添加界面
+    showAddSpu() {
+      //显示界面
+      this.isShowSpu = true;
+      //通知supFrom 添加界面初始数据显示
+      //使用$refs找到组件对象进行通信(调用子组件中的函数)
+      this.$refs.spuForm.initLoadAddData(this.category3Id);
+      // 和更新(修改)不一样的的是 添加数据不需要传递参数过去 因为没有要使用参数更新的数据 仅仅是更新一些列表数据 其他数据都是由用户手动添加的
+    },
+    //显示sku界面
+    showSku(spu) {
+      console.log(spu);
+      this.isShowSku = true; //显示
+      // 传给sku数据 除了spu之外需要的数据有一二菜单的id
+      spu = {
+        ...spu,
+        category1Id: this.category1Id,
+        category2Id: this.category2Id
+      };
+
+      // 让skuForm去加载初始化数据
+      this.$refs.skuForm.initLoadAddData(spu);
+    },
+    // 显示spuForm的修改界面
     showSpuForm(id) {
       // 将isShowSpu 更改为true 显示spuForm
       this.isShowSpu = true;

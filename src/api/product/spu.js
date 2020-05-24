@@ -20,7 +20,7 @@ export default {
     return request.get(`/admin/product/getSpuById/${id}`)
   },
   addOrUpdate(spuInfo) {
-    return request.post(`POST /admin/product/${spuInfo.id?'update':'save'}SpuInfo`, spuInfo)
+    return request.post(`/admin/product/${spuInfo.id?'update':'save'}SpuInfo`, spuInfo)
   },
   // GET /admin/product/{page}/{limit}
   getList(page, limit, category3Id) {
