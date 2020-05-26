@@ -1,7 +1,7 @@
 <template>
   <div>
-    <el-card>
-      <CategorySelector @categoryChange="handleCategoryChange" />
+    <el-card v-show="!isShowSku">
+      <CategorySelector ref="cs" @categoryChange="handleCategoryChange" />
     </el-card>
     <el-card v-show="!isShowSpu && !isShowSku">
       <el-button
@@ -10,6 +10,7 @@
         style="margin-bottom:20px"
         click="showSpuForm"
         @click="showAddSpu"
+        :disabled="!category3Id"
       >添加SPU</el-button>
       <el-table v-loading="loading" :data="spuList" border stripe>
         <!-- 序号列 -->
@@ -87,6 +88,7 @@
       :visible.sync="isShowSpu"
       @getList="getListSuccess"
       @back="isShowSku = false"
+      @saveSuccess="handleSaveSuccess"
     />
     <SkuForm ref="skuForm" v-show="isShowSku" />
   </div>
@@ -121,6 +123,12 @@ export default {
     //开局获取列表数据
     // this.category3Id = 61;
     // this.getSpuList();
+  },
+  watch: {
+    // 利用监视属性 根据 isShowSpuForm 的值更新3级列表的可操作性
+    isShowSpu(value) {
+      this.$refs.cs.disabled = value;
+    }
   },
   methods: {
     // 显示指定SPU的SKU列表
@@ -227,6 +235,14 @@ export default {
     handleSizeChange(pageSize) {
       this.limit = pageSize;
       this.getSpuList();
+    },
+    // spu保存成功的事件监听回调
+    handleSaveSuccess() {
+      //重新获取分页列表
+      // 如果是添加,显示第一页 如果是更新显示当前页
+      this.getSpuList(this.spuId ? this.page : 1);
+      // 重置更新的标识
+      this.spuId = null;
     }
   },
   components: {

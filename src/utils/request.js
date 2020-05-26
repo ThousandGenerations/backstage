@@ -40,7 +40,9 @@ service.interceptors.response.use(
         type: 'error',
         duration: 5 * 1000
       })
-
+      if (result, code === 201) {
+        return new Promise(() => {})
+      }
       return Promise.reject(new Error(result.message || '未知错误'))
     } else {
       return result

@@ -4,17 +4,32 @@
     <!-- label ==> 标签文本 -->
     <el-form-item label="一级分类">
       <!-- 定义自定义事件 当列表项发生改变的时候触发的事件回调 -->
-      <el-select placeholder="请选择一级分类项" v-model="cFrom.category1Id" @change="handleChange1">
+      <el-select
+        :disabled="disabled"
+        placeholder="请选择一级分类项"
+        v-model="cFrom.category1Id"
+        @change="handleChange1"
+      >
         <el-option :label="c.name" :value="c.id" v-for="c in category1List" :key="c.id"></el-option>
       </el-select>
     </el-form-item>
     <el-form-item label="二级分类">
-      <el-select placeholder="请选择二级分类项" v-model="cFrom.category2Id" @change="handleChange2">
+      <el-select
+        :disabled="disabled"
+        placeholder="请选择二级分类项"
+        v-model="cFrom.category2Id"
+        @change="handleChange2"
+      >
         <el-option :label="c.name" :value="c.id" v-for="c in category2List" :key="c.id"></el-option>
       </el-select>
     </el-form-item>
     <el-form-item label="三级分类">
-      <el-select placeholder="请选择三级分类项" v-model="cFrom.category3Id" @change="handleChange3">
+      <el-select
+        :disabled="disabled"
+        placeholder="请选择三级分类项"
+        v-model="cFrom.category3Id"
+        @change="handleChange3"
+      >
         <el-option :label="c.name" :value="c.id" v-for="c in category3List" :key="c.id"></el-option>
       </el-select>
     </el-form-item>
@@ -26,6 +41,7 @@ export default {
   name: "CategorySelector",
   data() {
     return {
+      disabled: false, // 下拉列表是否禁用
       cFrom: {
         category1Id: "", // 下拉列表每项数据的id值 也就是value值 同时v-model绑定了这个值动态获取
         category2Id: "",
