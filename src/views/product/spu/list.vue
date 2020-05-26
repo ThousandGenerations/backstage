@@ -120,9 +120,9 @@ export default {
     };
   },
   mounted() {
-    //开局获取列表数据
-    // this.category3Id = 61;
-    // this.getSpuList();
+    // 开局获取列表数据;
+    this.category3Id = 61;
+    this.getSpuList();
   },
   watch: {
     // 利用监视属性 根据 isShowSpuForm 的值更新3级列表的可操作性
@@ -168,6 +168,7 @@ export default {
     showAddSpu() {
       //显示界面
       this.isShowSpu = true;
+
       //通知supFrom 添加界面初始数据显示
       //使用$refs找到组件对象进行通信(调用子组件中的函数)
       this.$refs.spuForm.initLoadAddData(this.category3Id);
